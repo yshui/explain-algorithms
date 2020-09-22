@@ -1,1 +1,1 @@
-Sitemap: https://yshui.github.io/explain-algorithms/sitemap.xml
+Sitemap: https://explain.yshui.dev/sitemap.xml
