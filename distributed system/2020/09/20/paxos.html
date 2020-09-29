@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>How you could have come up with Paxos yourself | Explain Algorithms</title>
+<meta name="generator" content="Jekyll v4.1.1" />
+<meta property="og:title" content="How you could have come up with Paxos yourself" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="In the field of computer science, the Paxos algorithm is notorious for how difficult it is to understand. I had to learn the Paxos algorithm in my distributed systems class. I even have “implemented” it by translating Leslie Lamport’s TLA+ to Python. But I didn’t understand it until much much later." />
+<meta property="og:description" content="In the field of computer science, the Paxos algorithm is notorious for how difficult it is to understand. I had to learn the Paxos algorithm in my distributed systems class. I even have “implemented” it by translating Leslie Lamport’s TLA+ to Python. But I didn’t understand it until much much later." />
+<link rel="canonical" href="https://explain.yshui.dev/distributed%20system/2020/09/20/paxos.html" />
+<meta property="og:url" content="https://explain.yshui.dev/distributed%20system/2020/09/20/paxos.html" />
+<meta property="og:site_name" content="Explain Algorithms" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-09-20T00:00:00-05:00" />
+<script type="application/ld+json">
+{"url":"https://explain.yshui.dev/distributed%20system/2020/09/20/paxos.html","@type":"BlogPosting","headline":"How you could have come up with Paxos yourself","dateModified":"2020-09-20T00:00:00-05:00","datePublished":"2020-09-20T00:00:00-05:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://explain.yshui.dev/distributed%20system/2020/09/20/paxos.html"},"description":"In the field of computer science, the Paxos algorithm is notorious for how difficult it is to understand. I had to learn the Paxos algorithm in my distributed systems class. I even have “implemented” it by translating Leslie Lamport’s TLA+ to Python. But I didn’t understand it until much much later.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://explain.yshui.dev/feed.xml" title="Explain Algorithms" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link href="https://cdn.jsdelivr.net/npm/@primer/css/dist/primer.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.css"><script src="https://hypothes.is/embed.js" async></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"> </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement( document.body, {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "[%", right: "%]", display: true},
+            {left: "$", right: "$", display: false}
+        ]}
+        );
+    });
+    </script>
+
+
+<script>
+function wrap_img(fn) {
+    if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+        var elements = document.querySelectorAll(".post img");
+        Array.prototype.forEach.call(elements, function(el, i) {
+            if (el.getAttribute("title") && (el.className != "emoji")) {
+                const caption = document.createElement('figcaption');
+                var node = document.createTextNode(el.getAttribute("title"));
+                caption.appendChild(node);
+                const wrapper = document.createElement('figure');
+                wrapper.className = 'image';
+                el.parentNode.insertBefore(wrapper, el);
+                el.parentNode.removeChild(el);
+                wrapper.appendChild(el);
+                wrapper.appendChild(caption);
+            }
+        });
+    } else { document.addEventListener('DOMContentLoaded', fn); }
+}
+window.onload = wrap_img;
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+    // add link icon to anchor tags
+    var elem = document.querySelectorAll(".anchor-link")
+    elem.forEach(e => (e.innerHTML = '<i class="fas fa-link fa-xs"></i>'));
+    });
+</script>
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Explain Algorithms</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About Me</a><a class="page-link" href="/search/">Search</a><a class="page-link" href="/categories/">Tags</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">How you could have come up with Paxos yourself</h1><p class="post-meta post-meta-title"><time class="dt-published" datetime="2020-09-20T00:00:00-05:00" itemprop="datePublished">
+        Sep 20, 2020
+      </time>
+       • <span class="read-time" title="Estimated read time">
+    
+    
+      12 min read
+    
+</span></p>
+
+    
+      <p class="category-tags"><i class="fas fa-tags category-tags-icon"></i></i> 
+      
+        <a class="category-tags-link" href="//categories/#Distributed system">Distributed system</a>
+        
+      
+      </p>
+    
+
+    </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>In the field of computer science, the Paxos algorithm is notorious for how difficult it is to understand. I had to learn the Paxos algorithm in my distributed systems class. I even have “implemented” it by translating Leslie Lamport’s TLA+ to Python. But I didn’t understand it until much much later.</p>
+
+<p>Now I have a better understanding of Paxos than I used to, I want to explain it to other people. Not because I’d like to help people, rather, I find that explaining things is a very good way to find blind spots in my own understanding.</p>
+
+<p>So, where do we start? Personally, I dislike explanations that start with a step-by-step breakdown of the algorithm, followed by a proof of why those steps do what they claim to do. Instead, I much prefer to start with the problem the algorithm tries to solve, then iteratively come up with a solution together with the reader. So that’s what I am going to do. And now you understand the title.</p>
+
+<p><em>Small disclaimer:</em> The glossaries used in this article is different from what is commonly used for Paxos. I just picked the ones that made the most sense for my narrative.</p>
+
+<h2 id="the-problem">The problem</h2>
+
+<p>The distributed consensus problem is widely useful, so the reader probably doesn’t need to be motivated. Here I will just simply state the problem.</p>
+
+<p>There is a group of agents (let’s call them $\sc{CLIENT}s$), who want to choose a number among their selections. Any number is fine, as long as everyone agrees on the same number.</p>
+
+<p>Here, there are a few assumptions we will make to make this problem meaningful:</p>
+
+<ul>
+  <li>All the agents - including but not limited to the $\sc{CLIENT}s$, as we will add more types of agents later - are well-behaved. Meaning they all execute the prescribed algorithms faithfully, and don’t maliciously try to trick other agents. (If you like jargons: Byzantine failures don’t occur.)</li>
+  <li>Agents can talk to each other by sending each other messages, but the messages they send to each other could take arbitrarily long before reaching their destination, and might get lost (but never altered).</li>
+</ul>
+
+<p>The agents could also “fail”. However, failing is equivalent to all messages sent to/from that agent being lost forever. So whether we have this assumption or not won’t change the algorithm we come up with.</p>
+
+<p>Also, to not complicate things, we are only solving the “single-round” consensus problem in this article, meaning as the output of this algorithm, all of the $\sc{CLIENT}s$ will get a single number which they agree on.</p>
+
+<h2 id="solution-searching-adventure">Solution searching adventure</h2>
+
+<h3 id="iteration-0">Iteration 0</h3>
+
+<p>When trying to solve a complex problem such as this one, it’s usually a good idea to start by simplifying the problem.
+As a start, let’s just ignore the need to be reliable entirely.</p>
+
+<p>If we throw reliability out the window, it should be easy to come up with a very simple solution: we add an agent (let’s call it $\sc{COORDINATOR}$).
+The $\sc{CLIENTS}$ send whatever number they pick to the $\sc{COORDINATOR}$ in a $\sc{PROPOSAL}(client_i, x)$ message, where $x$ is the number
+proposed by the $i$-th $\sc{CLIENT}$. The $\sc{COORDINATOR}$ picks an arbitrary proposal (say, $x’$),
+and informs the other $\sc{CLIENT}s$ about this decision.
+Specifically, the $\sc{COORDINATOR}$ will just reply with a $\sc{CHOSEN}(x’)$ message to all the $\sc{PROPOSAL}(\ldots)$ messages it has
+received and will receive.</p>
+
+<p>If we assume no messages ever get lost, it is quite easy to see that every $\sc{CLIENT}$ will get a number. And because only one number is ever chosen, they will all get the same number.</p>
+
+<p>It is also easy to see why this solution is impractical: it has a single point of failure. Once the singular $\sc{COORDINATOR}$ fails, no further progress can be made.</p>
+
+<h3 id="iteration-1">Iteration 1</h3>
+
+<p>To improve this almost looks easy at first glance: just add more $\sc{COORDINATOR}s$!</p>
+
+<p>Sure, more $\sc{COORDINATOR}s$ would remove the single point of failure. However, if there are more than one $\sc{COORDINATOR}s$, they might individually make different decisions, which results in the $\sc{CLIENT}s$ having disagreement.</p>
+
+<p>What if we let the $\sc{COORDINATOR}s$ reach an agreement among themselves before responding? But wait, doesn’t that sound familiar? Having a group of agents reaching an agreement, that’s exactly what we added the $\sc{COORDINATOR}s$ to solve. We just made the problem cyclic.</p>
+
+<p>Let’s take a step back. Is there a way for the clients to reach an agreement without having the $\sc{COORDINATOR}s$ communicate with each other?</p>
+
+<p>In other words, among the decisions of the $\sc{COORDINATOR}s$, is there an deterministic algorithm to pick out a specific one that is robust against message losses?</p>
+
+<p>This might sound hard, but it’s actually quite simple: pick the decision that is backed by more than half of the $\sc{COORDINATOR}s$.</p>
+
+<p>There can’t be two decisions both with more than half of the $\sc{COORDINATOR}s$ backing them; and if a decision doesn’t have that many $\sc{COORDINATOR}s$ backing it, it won’t appear to have more backing $\sc{COORDINATOR}s$ through message losses.</p>
+
+<p>Since this approach resembles a majority vote, let’s call $\sc{COORDINATOR}$ decisions $\sc{VOTE}(coord_i, x)$ from now on, where $x$ is the number picked by the $i$-th $\sc{COORDINATOR}$. Each $\sc{COORDINATOR}$ has a single vote, because each of them only makes a single decision.</p>
+
+<p>Obviously, our solution cannot be infinitely reliable. If more than half of the $\sc{COORDINATOR}s$ went down, there will never be a majority reached. But this is already vastly better than our first solution, and the reliability scales with the number of $\sc{COORDINATOR}s$. So we will call it good enough.</p>
+
+<p>Sadly, this solution doesn’t actually work: there might not be a majority at all! For example, it’s possible that three of the proposals each get a third of the votes. We would have a stalemate in that case.</p>
+
+<h3 id="iteration-2">Iteration 2</h3>
+
+<p>Again, a solution seems straightforward: just try again in case of a stalemate.</p>
+
+<p>But then again, things aren’t that simple.</p>
+
+<p>First of all, the $\sc{COORDINATOR}s$ need to be made aware of a retry. Otherwise, because each $\sc{COORDINATOR}$ only has one vote, they won’t be able to vote again even if the $\sc{CLIENT}s$ retry.</p>
+
+<p>To do that, we attach an attempt id to all the messages sent. i.e. $\sc{PROPOSAL}(client_i, x)$ becomes $\sc{PROPOSAL}(\#attempt, client_i, x)$, and so forth. Each time a $\sc{CLIENT}$ retries, it bumps $\#attempt$ to the maximum $\#attempt$ it knows of plus 1. And the $\sc{COORDINATOR}s$ should only responds to messages with the most recent $\#attempt$.</p>
+
+<p>Hopefully the intent of the $\#attempt$ number is clear. (<a href="https://github.com/yshui/explain-algorithms/issues/new">Let me know</a> if not.)</p>
+
+<p>Are we good now? Unfortunately, no. Consider this scenario:</p>
+
+<p>There were 2 clients. They proposed their numbers, the $\sc{COORDINATOR}$ voted on them and all agreed on a single number, $x_1$, all is good. But, all of the $\sc{VOTE}(\ldots)$ messages got lost on the way to $client_2$, while $client_1$ received all of the messages just fine. At this point, $client_1$ thought $x_1$ is the number, but $client_2$ went on to retry. The $\sc{COORDINATOR}s$ voted again, and got $x_2$. This time, all the messages sent to $client_1$ got lost.</p>
+
+<p>And behold, we got the two clients to disagree.</p>
+
+<p>There is an important insight to be had here. Whenever a $\sc{COORDINATOR}$, say $coord_i$, sends out a $\sc{VOTE}(\ldots, coord_i, x)$, there is a chance that some $\sc{CLIENT}$ would adopt $x$. If $coord_i$ ever sends out two votes with different $x$, there is a chance that some of the $\sc{CLIENT}s$ would disagree.</p>
+
+<p>In other words, once a $\sc{COORDINATOR}$ has revealed its vote, it has to stick to it.</p>
+
+<p>This seems to run contrary to our attempt: if the $\sc{COORDINATOR}s$ cannot change their votes, what’s the point of retrying? A stalemate will be a stalemate forever.</p>
+
+<p>Looks like we reached a dead end with this type of voting. It appears the problem stems from the fact that the $\sc{COORDINATOR}s$ have to commit to their votes.</p>
+
+<p>So, what if we introduce a form of non-commitment voting?</p>
+
+<h3 id="iteration-3">Iteration 3</h3>
+
+<p>Let’s explore this idea. Say, the $\sc{COORDINATOR}s$ could now send a $\sc{TENTATIVE}\sc{VOTE}(\#attempt, coord_i, x)$ message, to tentatively vote for $x$.</p>
+
+<p>Obviously, the $\sc{CLIENT}s$ couldn’t adopt $x$ right away. So what’s this vote good for?</p>
+
+<p>Ah, right, it could get us to a majority.</p>
+
+<p>It is correct that tentative votes don’t lead directly to an agreement among $\sc{CLIENT}s$, but it can show us when a majority has formed among the $\sc{COORDINATOR}s$.</p>
+
+<p>Once a $\sc{CLIENT}$ sees a majority tentative vote, it can then message the $\sc{COORDINATOR}s$ to ask for an actual vote. (Let’s call this message $\sc{PLEASE}\sc{VOTE}(\#attempt, client_i)$). Intuitively, the $\sc{COORDINATOR}s$ have to make the same vote in the actual vote as their tentative votes.</p>
+
+<p>If all goes well, we would get a majority and an agreement. If there is no majority, the $\sc{COORDINATOR}s$ won’t even start a vote, so they are free to change their mind. So the $\sc{CLIENT}s$ could start another attempt which might have a different outcome.</p>
+
+<p>What if things don’t go well? What if the $\sc{PLEASE}\sc{VOTE}$ messages weren’t received by some of the $\sc{COORDINATOR}s$?
+In that case, some of the $\sc{COORDINATOR}s$ would have voted, and their decisions cannot be changed. That is to say, in all subsequent attempts, these $\sc{COORDINATOR}s$ will always vote for what they have voted for, whether it’s a tentative vote, or the actual vote. But that doesn’t create a problem for us. There was a majority in the tentative votes, and now we solidified part of the tentative votes. There is at least one way we can still reach a majority in the next round: everyone votes the same as they did in this round. And we can prove this inductively for all future rounds.</p>
+
+<p>From this, we can have a rough image of how the algorithm functions: as attempts are being made, more and more $\sc{COORDINATOR}s$ start to make up their mind which number they will commit to, while making sure a majority could still be reached. Eventually, after all the $\sc{COORDINATOR}s$ have made up their minds, by induction there must be a majority among them. From that point on, they will just repeatedly broadcast this decision to the $\sc{CLIENT}s$, until all the $\sc{CLIENT}s$ have got that message.</p>
+
+<p>And Viola, we have a working algorithm.</p>
+
+<h3 id="the-actual-algorithm">The actual algorithm</h3>
+
+<p>Let’s clean up our thoughts, and condense the description of our algorithm so it’s easy to understand.</p>
+
+<p>First, there is the $\#attempt$ number that is attached to every message. This number is bumped every time a new attempt is made. If a $\sc{CLIENT}$ sees a message with a $\#attempt$ bigger then its most recent $\#attempt$, it knows a new attempt has been initiated, so it would abort its current attempt and participate in the newer one. If a $\sc{COORDINATOR}$ sees a message with a $\#attempt$ smaller than the biggest $\#attempt$ it has ever seen, it would know that message is stale, so it will drop the message.</p>
+
+<p>With that out of the way, let’s describe what happens in an attempt.</p>
+
+<p>Each attempt can be split into two phases:</p>
+
+<ul>
+  <li><strong>Phase 1:</strong> The $\sc{CLIENT}s$ each send its $\sc{PROPOSAL}(\ldots)$ to the $\sc{COORDINATOR}s$. The $\sc{COORDINATOR}s$ reply with a $\sc{TENTATIVE}\sc{VOTE}(\ldots, x)$. Each $\sc{CLIENT}$ waits for the tentative votes until they reach a majority. If a majority is not reached, retry.</li>
+  <li><strong>Phase 2:</strong> If a majority is reached, the $\sc{CLIENT}s$ send $\sc{PLEASE}\sc{VOTE}$, and the $\sc{COORDINATOR}s$ actually vote. Their actual votes would be the same as their respective tentative votes. Each $\sc{CLIENT}$ waits for the votes until they reach a majority, and then adopt the majority number.</li>
+</ul>
+
+<h2 id="back-to-paxos">Back to Paxos</h2>
+
+<p>Our algorithm does look a bit different from the official Paxos. For one, the name of the agents are different. What we call $\sc{CLIENT}s$, Lamport calls $\sc{PROPOSER}s$; and $\sc{COORDINATOR}s$, $\sc{ACCEPTOR}s$.</p>
+
+<p>Besides that, there are protocol differences too.</p>
+
+<p>Firstly, the $\sc{COORDINATOR}s$ don’t have to send the $\sc{TENTATIVE}\sc{VOTE}(\ldots)$ to everyone, they just need to send it to the $\sc{CLIENT}$ they agree with. This way we won’t have every $\sc{CLIENT}s$ sending $\sc{PLEASE}\sc{VOTE}$ at the same time, that would be inefficient.</p>
+
+<p>After, we notice that the proposed number is unnecessarily sent multiple times in phase 1 and phase 2. The phase 1 is used to reach a majority, the proposed number is not actually important in that phase. So we remove the $x$ from $\sc{PROPOSAL}$; and in $\sc{TENTATIVE}\sc{VOTE}$, instead voting for a number, they vote for a $\sc{CLIENT}$, by sending the tentative vote only to that $\sc{CLIENTS}$. Finally, after a client received a majority of tentative votes, it sends a $\sc{PLEASE}\sc{VOTE}(x)$, so all the $\sc{COORDINATOR}s$ got that message will vote $x$. Of course, if a $\sc{COORDINATOR}$ has already voted in a previous round, it has to tell the $\sc{CLIENT}$, so it could pick the already voted $x$, otherwise its $\sc{PLEASE}\sc{VOTE}(x)$ will be wasted, as the $\sc{COORDINATOR}s$ couldn’t change their minds.</p>
+
+<p>(The modified algorithm has slightly better property. In our algorithm, we just make sure a majority is still possible after each attempt; in Paxos, each round the $\sc{COORDINATOR}s$ that vote will all vote for the same number.)</p>
+
+<p>With this little changes, we can map our algorithm back to Paxos:</p>
+
+<p>Agents:</p>
+
+<ul>
+  <li>$\sc{CLIENT}$ =&gt; $\sc{PROPOSER}$ (which makes proposals) and $\sc{LEARNER}$ (which adopts the resulting number)</li>
+  <li>$\sc{COORDINATOR}$ =&gt; $\sc{ACCEPTOR}$</li>
+</ul>
+
+<p>Messages:</p>
+
+<ul>
+  <li>$\sc{PROPOSAL}(\#attempt, client_i)$ =&gt; $\sc{PREPARE}(\#attempt, client_i)$</li>
+  <li>$\sc{TENTATIVE}\sc{VOTE}(\#attempt, coord_i)$ =&gt; $\sc{PROMISE}(\#attempt, coord_i)$</li>
+  <li>$\sc{PLEASE}\sc{VOTE}(\#attempt, client_i, x)$ =&gt; $\sc{ACCEPT}(\#attempt, client_i, x)$</li>
+  <li>$\sc{VOTE}(\#attempt, coord_i, x)$ =&gt; $\sc{ACCEPTED}(\#attempt, coord_i, x)$</li>
+</ul>
+
+  </div><a class="u-url" href="/distributed%20system/2020/09/20/paxos.html" hidden></a>
+</article>
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <p>Computer algorithms in human readable format</p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/yshui" title="yshui"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://twitter.com/yxshui" title="yxshui"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg></a></li></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
