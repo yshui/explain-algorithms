@@ -6,7 +6,7 @@
 
 [//]: # (END OF BADGES SECTION)
 
-# Explain Algorithm
+# Explain Algorithms
 
 Here I try my best to explain algorithms. Partly for curious people, partly for my future self.
 
