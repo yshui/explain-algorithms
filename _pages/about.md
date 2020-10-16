@@ -1,11 +1,16 @@
 ---
 layout: page
-title: About Me
+title: About
 permalink: /about/
 ---
 
-This website is powered by **[fastpages](https://github.com/fastai/fastpages)** [^1].
+Here I try my best to explain algorithms. Partly for curious people, partly for my future self.
 
+I will be utterly flustered if anyone can find this useful.
 
-
-[^1]:a blogging platform that natively supports Jupyter notebooks in addition to other formats.
+Also, if you find any mistakes please don't hesitate to [open an issue](https://github.com/yshui/explain-algorithms/issues/new).
+<br><br><br>
+* * *
+<span class="footnote" style="font-size: 80%;">
+This website is powered by **[fastpages](https://github.com/fastai/fastpages)**.
+</span>
