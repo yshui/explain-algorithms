@@ -9,8 +9,8 @@ Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tel
 but don't worry, I know this is a terrible idea, and (hopefully) no one is _actually_ going to do that.
 
 But why, you might ask, would anyone even begin to ponder such a silly idea? Well, poking things and making them do things they
-aren't _supposed to_ do is a brilliant way to figure out how they work. And exception handling is certainly a very interesting
-, and perhaps quite important, practical computer algorithm. So it's quite natural for someone to have curiosity about how it works.
+aren't _supposed to_ do is a excellent way to figure out how they work. And exception handling is certainly a very interesting
+, and perhaps quite important, practical **computer algorithm**. So it's quite natural for someone to have curiosity about how it works.
 
 Alright. But where do we even start? If you search for information on exception handling online, what you would find is
 usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
@@ -98,8 +98,8 @@ main:
 (If you don't know how to read this assembly, you just need to know this: instructions which start with letter `j` mean jump. The thing which follows the jump instruction is a "label", which is also what the `.Lxxx:` you see in the code are.
 The jump instruction will jump to the matching label when executed)
 
-OK, here we spot `__cxa_begin_catch` and `__cxa_end_catch`, which seems to be relevant. However, they don't seem to be directly reachable. If you follow the call to `throw_exception()`, you can see after it returns, the code immediately jumps
-to `.L8`, then returns from `main`. So who is going to execute the `catch` block?
+OK, here we spot `__cxa_begin_catch` and `__cxa_end_catch`, which seems to match the `catch` block in the source code. However, they don't seem to be reachable. If you follow the call to `throw_exception()`,
+you can see after it returns, the code immediately jumps to `.L8`, which returns to the caller. So who is going to trigger the `catch` block?
 
 Let's look a bit further into the assembly:
 
@@ -129,17 +129,17 @@ Let's look a bit further into the assembly:
 This assembly block defines _data_. After being assembled and linked, they become data bytes stored verbatim in the executable. And in there, we find a reference to `.L7`.
 Look back at the code, we can see `.L7` contains a jump to `.L5`, which is the `catch` block.
 
-From this, we can infer that, there is some information stored in the executable ("metadata"), which the exception throwers will read when they throw an exception, to figure out what code to run when they throw an exception.
+From this, we can infer that, there is some information stored in the executable ("metadata"), which, when an exception is thrown, the throwers will read to figure out the code to run.
 
-Alright, we have a <span id="rough" class="anchor">rough</span> picture of how exception handling works:
+Alright, now we have a <span id="rough" class="anchor">rough</span> picture of how exception handling works:
 
 * The thrower prepares the exception, then call `__cxa_throw`
-* `__cxa_throw` looks through the metadata of the callers in the function call stack, to find a suitable catcher
-* The program jumps to the catcher
+* `__cxa_throw` looks through the metadata of the callers in the function call stack, to find a suitable handler
+* The program jumps to the handler
 
-Looks simple, right? If we can somehow make the metadata of a _C_ function yell: "hey, look here, I am an exception catcher!", we will be done here.
+Looks simple, right? If we can _somehow_ make the metadata of a _C_ function declare: "hey, look here, I have an exception handler!", we will be done.
 
-But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as exception catcher, right?
+But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as having an exception handler, right?
 
 Well, there is not a _standard_ way. But there is a way. There is this extension to C, implemented by the GCC compiler (and later Clang), which allows you to attach a
 ["cleanup"](https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#:~:text=cleanup) function to a local variable. This cleanup function will be called when
@@ -148,7 +148,7 @@ the local variable goes out of scope.
 Because of the excellent interoperability between C and C++, you can have the situation where an C++ exception is thrown "through" a C function. Normally, the cleanup functions
 aren't going to run in that case. However, this makes people unhappy. So, now, there _is_ a way to make them run.
 
-Passing the `-fexceptions` option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the destructors of local variables in C++.
+Passing the `-fexceptions` option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the local variable destructors in C++.
 
 Here is an example:
 
@@ -174,12 +174,12 @@ int main() {
 // file2.c
 #include <stdio.h>
 extern void throw_exception();
-void a_cleanup_function(void *x) {
+void the_cleanup_function(void *x) {
     fprintf(stderr, "cleanup called\n");
 }
 void might_throw() {
-    // Call a_cleanup_function when `x` goes out of scope
-    __attribute__((cleanup(a_cleanup_function))) int x;
+    // Call the_cleanup_function when `x` goes out of scope
+    __attribute__((cleanup(the_cleanup_function))) int x;
     throw_exception();
     fprintf(stderr, "do more stuff\n"); // we don't get to this point :'(
 }
@@ -215,29 +215,29 @@ might_throw:
 .L5:
 	lea	rdi, 4[rsp]
 .LEHB2:
-	call	a_cleanup_function
+	call	the_cleanup_function
 	mov	rdi, rbp
 	call	_Unwind_Resume@PLT
 ; ... more skipped ...
 ```
 
-Here you can easily see the call to `a_cleanup_function`, right after that, is a call to `_Unwind_Resume`. What does that do?
+You can easily see the call to `the_cleanup_function`, right after that, is a call to `_Unwind_Resume`. What does that do?
 
-First of all, what does "unwind" mean here? You might have already known, the program needs to "unwind its stack" when an exception is thrown. Basically it has to remove entries on its call stack, until a catcher is found.
+First of all, what does "unwind" mean here? You might have already known, the program needs to "unwind its stack" when an exception is thrown. Basically it has to remove entries on its call stack, until a handler is found.
 Which is the process we already described [above](#rough).
 
-So, inferring from the name again, we can guess that `_Unwind_Resume` will resume an interrupted stack unwinding (which is
-[correct](https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html),
-by the way). And our cleanup function does interrupt the unwind, so after it returns, the program calls `_Unwind_Resume` to resume it.
+So, inferring from the function name again, we can guess that `_Unwind_Resume` resumes an interrupted stack unwinding (which is, by the way,
+[correct](https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html)).
+And our cleanup function does interrupt the unwind, so after the cleanup function returns, the program calls `_Unwind_Resume` to resume the unwinding.
 
 Alright, _if_, we can stop that function from being called. If we can do that, we would have "caught" the exception.
 
-Basically, we want `a_cleanup_function` to skip over everything in `might_throw` that is after the call to `a_cleanup_function`. Clearly, we need something that could interrupt the normal execution flow of the program.
+Basically, we want `the_cleanup_function` to skip over everything in `might_throw` that is after the call to `the_cleanup_function`. Clearly, we need something that could interrupt the normal execution flow of the program.
 `goto` is not enough, because our skip is cross-function. We need something stronger.
 
 And there is indeed something stronger. `setjmp` and `longjmp`! A call to `longjmp` allows you to jump to a point in the program where you have previously called `setjmp` (the
 [man page](https://man7.org/linux/man-pages/man3/setjmp.3.html) explains these functions very well). So we just need to use `setjmp` to put an anchor in the normal return path of `might_throw`, then have
-`a_cleanup_function` jump to there with `longjmp`, and we would have skipped the `_Unwind_Resume`.
+`the_cleanup_function` jump to there with `longjmp`, and we would have skipped the `_Unwind_Resume`.
 
 Here is a version of `might_throw` that does this:
 
@@ -253,13 +253,13 @@ struct Catch {
 	// performed.
 	int do_jump;
 };
-void a_cleanup_function(struct Catch *env) {
+void the_cleanup_function(struct Catch *env) {
 	if (env->do_jump) {
 		longjmp(env->env, 1);
 	}
 }
 void might_throw() {
-	__attribute__((cleanup(a_cleanup_function))) struct Catch env;
+	__attribute__((cleanup(the_cleanup_function))) struct Catch env;
 	if (setjmp(env.env) == 0) {
 		env.do_jump = 1;
 		throw_exception();
