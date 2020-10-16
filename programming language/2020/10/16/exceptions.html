@@ -122,8 +122,8 @@ window.onload = wrap_img;
 but don't worry, I know this is a terrible idea, and (hopefully) no one is <em>actually</em> going to do that.</p>
 
 <p>But why, you might ask, would anyone even begin to ponder such a silly idea? Well, poking things and making them do things they
-aren't <em>supposed to</em> do is a brilliant way to figure out how they work. And exception handling is certainly a very interesting
-, and perhaps quite important, practical computer algorithm. So it's quite natural for someone to have curiosity about how it works.</p>
+aren't <em>supposed to</em> do is a excellent way to figure out how they work. And exception handling is certainly a very interesting
+, and perhaps quite important, practical <strong>computer algorithm</strong>. So it's quite natural for someone to have curiosity about how it works.</p>
 
 <p>Alright. But where do we even start? If you search for information on exception handling online, what you would find is
 usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
@@ -207,8 +207,8 @@ For the rest of us, we will move on to the catching side:</p>
 <p>(If you don't know how to read this assembly, you just need to know this: instructions which start with letter <code class="language-plaintext highlighter-rouge">j</code> mean jump. The thing which follows the jump instruction is a "label", which is also what the <code class="language-plaintext highlighter-rouge">.Lxxx:</code> you see in the code are.
 The jump instruction will jump to the matching label when executed)</p>
 
-<p>OK, here we spot <code class="language-plaintext highlighter-rouge">__cxa_begin_catch</code> and <code class="language-plaintext highlighter-rouge">__cxa_end_catch</code>, which seems to be relevant. However, they don't seem to be directly reachable. If you follow the call to <code class="language-plaintext highlighter-rouge">throw_exception()</code>, you can see after it returns, the code immediately jumps
-to <code class="language-plaintext highlighter-rouge">.L8</code>, then returns from <code class="language-plaintext highlighter-rouge">main</code>. So who is going to execute the <code class="language-plaintext highlighter-rouge">catch</code> block?</p>
+<p>OK, here we spot <code class="language-plaintext highlighter-rouge">__cxa_begin_catch</code> and <code class="language-plaintext highlighter-rouge">__cxa_end_catch</code>, which seems to match the <code class="language-plaintext highlighter-rouge">catch</code> block in the source code. However, they don't seem to be reachable. If you follow the call to <code class="language-plaintext highlighter-rouge">throw_exception()</code>,
+you can see after it returns, the code immediately jumps to <code class="language-plaintext highlighter-rouge">.L8</code>, which returns to the caller. So who is going to trigger the <code class="language-plaintext highlighter-rouge">catch</code> block?</p>
 
 <p>Let's look a bit further into the assembly:</p>
 
@@ -237,19 +237,19 @@ to <code class="language-plaintext highlighter-rouge">.L8</code>, then returns f
 <p>This assembly block defines <em>data</em>. After being assembled and linked, they become data bytes stored verbatim in the executable. And in there, we find a reference to <code class="language-plaintext highlighter-rouge">.L7</code>.
 Look back at the code, we can see <code class="language-plaintext highlighter-rouge">.L7</code> contains a jump to <code class="language-plaintext highlighter-rouge">.L5</code>, which is the <code class="language-plaintext highlighter-rouge">catch</code> block.</p>
 
-<p>From this, we can infer that, there is some information stored in the executable ("metadata"), which the exception throwers will read when they throw an exception, to figure out what code to run when they throw an exception.</p>
+<p>From this, we can infer that, there is some information stored in the executable ("metadata"), which, when an exception is thrown, the throwers will read to figure out the code to run.</p>
 
-<p>Alright, we have a <span id="rough" class="anchor">rough</span> picture of how exception handling works:</p>
+<p>Alright, now we have a <span id="rough" class="anchor">rough</span> picture of how exception handling works:</p>
 
 <ul>
   <li>The thrower prepares the exception, then call <code class="language-plaintext highlighter-rouge">__cxa_throw</code></li>
-  <li><code class="language-plaintext highlighter-rouge">__cxa_throw</code> looks through the metadata of the callers in the function call stack, to find a suitable catcher</li>
-  <li>The program jumps to the catcher</li>
+  <li><code class="language-plaintext highlighter-rouge">__cxa_throw</code> looks through the metadata of the callers in the function call stack, to find a suitable handler</li>
+  <li>The program jumps to the handler</li>
 </ul>
 
-<p>Looks simple, right? If we can somehow make the metadata of a <em>C</em> function yell: "hey, look here, I am an exception catcher!", we will be done here.</p>
+<p>Looks simple, right? If we can <em>somehow</em> make the metadata of a <em>C</em> function declare: "hey, look here, I have an exception handler!", we will be done.</p>
 
-<p>But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as exception catcher, right?</p>
+<p>But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as having an exception handler, right?</p>
 
 <p>Well, there is not a <em>standard</em> way. But there is a way. There is this extension to C, implemented by the GCC compiler (and later Clang), which allows you to attach a
 <a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#:~:text=cleanup">"cleanup"</a> function to a local variable. This cleanup function will be called when
@@ -258,7 +258,7 @@ the local variable goes out of scope.</p>
 <p>Because of the excellent interoperability between C and C++, you can have the situation where an C++ exception is thrown "through" a C function. Normally, the cleanup functions
 aren't going to run in that case. However, this makes people unhappy. So, now, there <em>is</em> a way to make them run.</p>
 
-<p>Passing the <code class="language-plaintext highlighter-rouge">-fexceptions</code> option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the destructors of local variables in C++.</p>
+<p>Passing the <code class="language-plaintext highlighter-rouge">-fexceptions</code> option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the local variable destructors in C++.</p>
 
 <p>Here is an example:</p>
 
@@ -282,12 +282,12 @@ aren't going to run in that case. However, this makes people unhappy. So, now, t
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// file2.c</span>
 <span class="cp">#include &lt;stdio.h&gt;
 </span><span class="k">extern</span> <span class="kt">void</span> <span class="nf">throw_exception</span><span class="p">();</span>
-<span class="kt">void</span> <span class="nf">a_cleanup_function</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+<span class="kt">void</span> <span class="nf">the_cleanup_function</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"cleanup called</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
 <span class="p">}</span>
 <span class="kt">void</span> <span class="nf">might_throw</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// Call a_cleanup_function when `x` goes out of scope</span>
-    <span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">a_cleanup_function</span><span class="p">)))</span> <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
+    <span class="c1">// Call the_cleanup_function when `x` goes out of scope</span>
+    <span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">the_cleanup_function</span><span class="p">)))</span> <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
     <span class="n">throw_exception</span><span class="p">();</span>
     <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"do more stuff</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span> <span class="c1">// we don't get to this point :'(</span>
 <span class="p">}</span>
@@ -320,29 +320,29 @@ g++ file1.o file2.o
 <span class="nl">.L5:</span>
 	<span class="nf">lea</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="mi">4</span><span class="p">[</span><span class="nb">rsp</span><span class="p">]</span>
 <span class="nl">.LEHB2:</span>
-	<span class="nf">call</span>	<span class="nv">a_cleanup_function</span>
+	<span class="nf">call</span>	<span class="nv">the_cleanup_function</span>
 	<span class="nf">mov</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="nb">rbp</span>
 	<span class="nf">call</span>	<span class="nv">_Unwind_Resume@PLT</span>
 <span class="c1">; ... more skipped ...</span>
 </code></pre></div></div>
 
-<p>Here you can easily see the call to <code class="language-plaintext highlighter-rouge">a_cleanup_function</code>, right after that, is a call to <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>. What does that do?</p>
+<p>You can easily see the call to <code class="language-plaintext highlighter-rouge">the_cleanup_function</code>, right after that, is a call to <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>. What does that do?</p>
 
-<p>First of all, what does "unwind" mean here? You might have already known, the program needs to "unwind its stack" when an exception is thrown. Basically it has to remove entries on its call stack, until a catcher is found.
+<p>First of all, what does "unwind" mean here? You might have already known, the program needs to "unwind its stack" when an exception is thrown. Basically it has to remove entries on its call stack, until a handler is found.
 Which is the process we already described <a href="#rough">above</a>.</p>
 
-<p>So, inferring from the name again, we can guess that <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> will resume an interrupted stack unwinding (which is
-<a href="https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html">correct</a>,
-by the way). And our cleanup function does interrupt the unwind, so after it returns, the program calls <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> to resume it.</p>
+<p>So, inferring from the function name again, we can guess that <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> resumes an interrupted stack unwinding (which is, by the way,
+<a href="https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html">correct</a>).
+And our cleanup function does interrupt the unwind, so after the cleanup function returns, the program calls <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> to resume the unwinding.</p>
 
 <p>Alright, <em>if</em>, we can stop that function from being called. If we can do that, we would have "caught" the exception.</p>
 
-<p>Basically, we want <code class="language-plaintext highlighter-rouge">a_cleanup_function</code> to skip over everything in <code class="language-plaintext highlighter-rouge">might_throw</code> that is after the call to <code class="language-plaintext highlighter-rouge">a_cleanup_function</code>. Clearly, we need something that could interrupt the normal execution flow of the program.
+<p>Basically, we want <code class="language-plaintext highlighter-rouge">the_cleanup_function</code> to skip over everything in <code class="language-plaintext highlighter-rouge">might_throw</code> that is after the call to <code class="language-plaintext highlighter-rouge">the_cleanup_function</code>. Clearly, we need something that could interrupt the normal execution flow of the program.
 <code class="language-plaintext highlighter-rouge">goto</code> is not enough, because our skip is cross-function. We need something stronger.</p>
 
 <p>And there is indeed something stronger. <code class="language-plaintext highlighter-rouge">setjmp</code> and <code class="language-plaintext highlighter-rouge">longjmp</code>! A call to <code class="language-plaintext highlighter-rouge">longjmp</code> allows you to jump to a point in the program where you have previously called <code class="language-plaintext highlighter-rouge">setjmp</code> (the
 <a href="https://man7.org/linux/man-pages/man3/setjmp.3.html">man page</a> explains these functions very well). So we just need to use <code class="language-plaintext highlighter-rouge">setjmp</code> to put an anchor in the normal return path of <code class="language-plaintext highlighter-rouge">might_throw</code>, then have
-<code class="language-plaintext highlighter-rouge">a_cleanup_function</code> jump to there with <code class="language-plaintext highlighter-rouge">longjmp</code>, and we would have skipped the <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>.</p>
+<code class="language-plaintext highlighter-rouge">the_cleanup_function</code> jump to there with <code class="language-plaintext highlighter-rouge">longjmp</code>, and we would have skipped the <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>.</p>
 
 <p>Here is a version of <code class="language-plaintext highlighter-rouge">might_throw</code> that does this:</p>
 
@@ -357,13 +357,13 @@ by the way). And our cleanup function does interrupt the unwind, so after it ret
 	<span class="c1">// performed.</span>
 	<span class="kt">int</span> <span class="n">do_jump</span><span class="p">;</span>
 <span class="p">};</span>
-<span class="kt">void</span> <span class="nf">a_cleanup_function</span><span class="p">(</span><span class="k">struct</span> <span class="n">Catch</span> <span class="o">*</span><span class="n">env</span><span class="p">)</span> <span class="p">{</span>
+<span class="kt">void</span> <span class="nf">the_cleanup_function</span><span class="p">(</span><span class="k">struct</span> <span class="n">Catch</span> <span class="o">*</span><span class="n">env</span><span class="p">)</span> <span class="p">{</span>
 	<span class="k">if</span> <span class="p">(</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">do_jump</span><span class="p">)</span> <span class="p">{</span>
 		<span class="n">longjmp</span><span class="p">(</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">env</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
 	<span class="p">}</span>
 <span class="p">}</span>
 <span class="kt">void</span> <span class="nf">might_throw</span><span class="p">()</span> <span class="p">{</span>
-	<span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">a_cleanup_function</span><span class="p">)))</span> <span class="k">struct</span> <span class="n">Catch</span> <span class="n">env</span><span class="p">;</span>
+	<span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">the_cleanup_function</span><span class="p">)))</span> <span class="k">struct</span> <span class="n">Catch</span> <span class="n">env</span><span class="p">;</span>
 	<span class="k">if</span> <span class="p">(</span><span class="n">setjmp</span><span class="p">(</span><span class="n">env</span><span class="p">.</span><span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
 		<span class="n">env</span><span class="p">.</span><span class="n">do_jump</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
 		<span class="n">throw_exception</span><span class="p">();</span>

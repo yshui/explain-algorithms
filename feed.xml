@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="https://explain.yshui.dev/feed.xml" rel="self" type="application/atom+xml" /><link href="https://explain.yshui.dev/" rel="alternate" type="text/html" /><updated>2020-10-16T13:34:06-05:00</updated><id>https://explain.yshui.dev/feed.xml</id><title type="html">Explain Algorithms</title><subtitle>Computer algorithms in human readable format</subtitle><entry><title type="html">Handle C++ exceptions in C code, part 1</title><link href="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html" rel="alternate" type="text/html" title="Handle C++ exceptions in C code, part 1" /><published>2020-10-16T00:00:00-05:00</published><updated>2020-10-16T00:00:00-05:00</updated><id>https://explain.yshui.dev/programming%20language/2020/10/16/exceptions</id><content type="html" xml:base="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html">&lt;p&gt;Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code,
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="https://explain.yshui.dev/feed.xml" rel="self" type="application/atom+xml" /><link href="https://explain.yshui.dev/" rel="alternate" type="text/html" /><updated>2020-10-16T13:44:56-05:00</updated><id>https://explain.yshui.dev/feed.xml</id><title type="html">Explain Algorithms</title><subtitle>Computer algorithms in human readable format</subtitle><entry><title type="html">Handle C++ exceptions in C code, part 1</title><link href="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html" rel="alternate" type="text/html" title="Handle C++ exceptions in C code, part 1" /><published>2020-10-16T00:00:00-05:00</published><updated>2020-10-16T00:00:00-05:00</updated><id>https://explain.yshui.dev/programming%20language/2020/10/16/exceptions</id><content type="html" xml:base="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html">&lt;p&gt;Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code,
 but don't worry, I know this is a terrible idea, and (hopefully) no one is &lt;em&gt;actually&lt;/em&gt; going to do that.&lt;/p&gt;
 
 &lt;p&gt;But why, you might ask, would anyone even begin to ponder such a silly idea? Well, poking things and making them do things they
-aren't &lt;em&gt;supposed to&lt;/em&gt; do is a brilliant way to figure out how they work. And exception handling is certainly a very interesting
-, and perhaps quite important, practical computer algorithm. So it's quite natural for someone to have curiosity about how it works.&lt;/p&gt;
+aren't &lt;em&gt;supposed to&lt;/em&gt; do is a excellent way to figure out how they work. And exception handling is certainly a very interesting
+, and perhaps quite important, practical &lt;strong&gt;computer algorithm&lt;/strong&gt;. So it's quite natural for someone to have curiosity about how it works.&lt;/p&gt;
 
 &lt;p&gt;Alright. But where do we even start? If you search for information on exception handling online, what you would find is
 usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
@@ -87,8 +87,8 @@ For the rest of us, we will move on to the catching side:&lt;/p&gt;
 &lt;p&gt;(If you don't know how to read this assembly, you just need to know this: instructions which start with letter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;j&lt;/code&gt; mean jump. The thing which follows the jump instruction is a &quot;label&quot;, which is also what the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.Lxxx:&lt;/code&gt; you see in the code are.
 The jump instruction will jump to the matching label when executed)&lt;/p&gt;
 
-&lt;p&gt;OK, here we spot &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_begin_catch&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_end_catch&lt;/code&gt;, which seems to be relevant. However, they don't seem to be directly reachable. If you follow the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;throw_exception()&lt;/code&gt;, you can see after it returns, the code immediately jumps
-to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L8&lt;/code&gt;, then returns from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt;. So who is going to execute the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;catch&lt;/code&gt; block?&lt;/p&gt;
+&lt;p&gt;OK, here we spot &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_begin_catch&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_end_catch&lt;/code&gt;, which seems to match the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;catch&lt;/code&gt; block in the source code. However, they don't seem to be reachable. If you follow the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;throw_exception()&lt;/code&gt;,
+you can see after it returns, the code immediately jumps to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L8&lt;/code&gt;, which returns to the caller. So who is going to trigger the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;catch&lt;/code&gt; block?&lt;/p&gt;
 
 &lt;p&gt;Let's look a bit further into the assembly:&lt;/p&gt;
 
@@ -117,19 +117,19 @@ to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L8&lt;/co
 &lt;p&gt;This assembly block defines &lt;em&gt;data&lt;/em&gt;. After being assembled and linked, they become data bytes stored verbatim in the executable. And in there, we find a reference to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L7&lt;/code&gt;.
 Look back at the code, we can see &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L7&lt;/code&gt; contains a jump to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.L5&lt;/code&gt;, which is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;catch&lt;/code&gt; block.&lt;/p&gt;
 
-&lt;p&gt;From this, we can infer that, there is some information stored in the executable (&quot;metadata&quot;), which the exception throwers will read when they throw an exception, to figure out what code to run when they throw an exception.&lt;/p&gt;
+&lt;p&gt;From this, we can infer that, there is some information stored in the executable (&quot;metadata&quot;), which, when an exception is thrown, the throwers will read to figure out the code to run.&lt;/p&gt;
 
-&lt;p&gt;Alright, we have a &lt;span id=&quot;rough&quot; class=&quot;anchor&quot;&gt;rough&lt;/span&gt; picture of how exception handling works:&lt;/p&gt;
+&lt;p&gt;Alright, now we have a &lt;span id=&quot;rough&quot; class=&quot;anchor&quot;&gt;rough&lt;/span&gt; picture of how exception handling works:&lt;/p&gt;
 
 &lt;ul&gt;
   &lt;li&gt;The thrower prepares the exception, then call &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_throw&lt;/code&gt;&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_throw&lt;/code&gt; looks through the metadata of the callers in the function call stack, to find a suitable catcher&lt;/li&gt;
-  &lt;li&gt;The program jumps to the catcher&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__cxa_throw&lt;/code&gt; looks through the metadata of the callers in the function call stack, to find a suitable handler&lt;/li&gt;
+  &lt;li&gt;The program jumps to the handler&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Looks simple, right? If we can somehow make the metadata of a &lt;em&gt;C&lt;/em&gt; function yell: &quot;hey, look here, I am an exception catcher!&quot;, we will be done here.&lt;/p&gt;
+&lt;p&gt;Looks simple, right? If we can &lt;em&gt;somehow&lt;/em&gt; make the metadata of a &lt;em&gt;C&lt;/em&gt; function declare: &quot;hey, look here, I have an exception handler!&quot;, we will be done.&lt;/p&gt;
 
-&lt;p&gt;But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as exception catcher, right?&lt;/p&gt;
+&lt;p&gt;But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as having an exception handler, right?&lt;/p&gt;
 
 &lt;p&gt;Well, there is not a &lt;em&gt;standard&lt;/em&gt; way. But there is a way. There is this extension to C, implemented by the GCC compiler (and later Clang), which allows you to attach a
 &lt;a href=&quot;https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#:~:text=cleanup&quot;&gt;&quot;cleanup&quot;&lt;/a&gt; function to a local variable. This cleanup function will be called when
@@ -138,7 +138,7 @@ the local variable goes out of scope.&lt;/p&gt;
 &lt;p&gt;Because of the excellent interoperability between C and C++, you can have the situation where an C++ exception is thrown &quot;through&quot; a C function. Normally, the cleanup functions
 aren't going to run in that case. However, this makes people unhappy. So, now, there &lt;em&gt;is&lt;/em&gt; a way to make them run.&lt;/p&gt;
 
-&lt;p&gt;Passing the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-fexceptions&lt;/code&gt; option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the destructors of local variables in C++.&lt;/p&gt;
+&lt;p&gt;Passing the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-fexceptions&lt;/code&gt; option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the local variable destructors in C++.&lt;/p&gt;
 
 &lt;p&gt;Here is an example:&lt;/p&gt;
 
@@ -162,12 +162,12 @@ aren't going to run in that case. However, this makes people unhappy. So, now, t
 &lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// file2.c&lt;/span&gt;
 &lt;span class=&quot;cp&quot;&gt;#include &amp;lt;stdio.h&amp;gt;
 &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;throw_exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;a_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;the_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cleanup called&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;might_throw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;c1&quot;&gt;// Call a_cleanup_function when `x` goes out of scope&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;__attribute__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cleanup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Call the_cleanup_function when `x` goes out of scope&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;__attribute__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cleanup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;the_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;throw_exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;do more stuff&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// we don't get to this point :'(&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
@@ -200,29 +200,29 @@ g++ file1.o file2.o
 &lt;span class=&quot;nl&quot;&gt;.L5:&lt;/span&gt;
 	&lt;span class=&quot;nf&quot;&gt;lea&lt;/span&gt;	&lt;span class=&quot;nb&quot;&gt;rdi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;rsp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
 &lt;span class=&quot;nl&quot;&gt;.LEHB2:&lt;/span&gt;
-	&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;	&lt;span class=&quot;nv&quot;&gt;a_cleanup_function&lt;/span&gt;
+	&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;	&lt;span class=&quot;nv&quot;&gt;the_cleanup_function&lt;/span&gt;
 	&lt;span class=&quot;nf&quot;&gt;mov&lt;/span&gt;	&lt;span class=&quot;nb&quot;&gt;rdi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;rbp&lt;/span&gt;
 	&lt;span class=&quot;nf&quot;&gt;call&lt;/span&gt;	&lt;span class=&quot;nv&quot;&gt;_Unwind_Resume@PLT&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;; ... more skipped ...&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Here you can easily see the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a_cleanup_function&lt;/code&gt;, right after that, is a call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt;. What does that do?&lt;/p&gt;
+&lt;p&gt;You can easily see the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;the_cleanup_function&lt;/code&gt;, right after that, is a call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt;. What does that do?&lt;/p&gt;
 
-&lt;p&gt;First of all, what does &quot;unwind&quot; mean here? You might have already known, the program needs to &quot;unwind its stack&quot; when an exception is thrown. Basically it has to remove entries on its call stack, until a catcher is found.
+&lt;p&gt;First of all, what does &quot;unwind&quot; mean here? You might have already known, the program needs to &quot;unwind its stack&quot; when an exception is thrown. Basically it has to remove entries on its call stack, until a handler is found.
 Which is the process we already described &lt;a href=&quot;#rough&quot;&gt;above&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;So, inferring from the name again, we can guess that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt; will resume an interrupted stack unwinding (which is
-&lt;a href=&quot;https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html&quot;&gt;correct&lt;/a&gt;,
-by the way). And our cleanup function does interrupt the unwind, so after it returns, the program calls &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt; to resume it.&lt;/p&gt;
+&lt;p&gt;So, inferring from the function name again, we can guess that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt; resumes an interrupted stack unwinding (which is, by the way,
+&lt;a href=&quot;https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html&quot;&gt;correct&lt;/a&gt;).
+And our cleanup function does interrupt the unwind, so after the cleanup function returns, the program calls &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt; to resume the unwinding.&lt;/p&gt;
 
 &lt;p&gt;Alright, &lt;em&gt;if&lt;/em&gt;, we can stop that function from being called. If we can do that, we would have &quot;caught&quot; the exception.&lt;/p&gt;
 
-&lt;p&gt;Basically, we want &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a_cleanup_function&lt;/code&gt; to skip over everything in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;might_throw&lt;/code&gt; that is after the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a_cleanup_function&lt;/code&gt;. Clearly, we need something that could interrupt the normal execution flow of the program.
+&lt;p&gt;Basically, we want &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;the_cleanup_function&lt;/code&gt; to skip over everything in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;might_throw&lt;/code&gt; that is after the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;the_cleanup_function&lt;/code&gt;. Clearly, we need something that could interrupt the normal execution flow of the program.
 &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;goto&lt;/code&gt; is not enough, because our skip is cross-function. We need something stronger.&lt;/p&gt;
 
 &lt;p&gt;And there is indeed something stronger. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setjmp&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;longjmp&lt;/code&gt;! A call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;longjmp&lt;/code&gt; allows you to jump to a point in the program where you have previously called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setjmp&lt;/code&gt; (the
 &lt;a href=&quot;https://man7.org/linux/man-pages/man3/setjmp.3.html&quot;&gt;man page&lt;/a&gt; explains these functions very well). So we just need to use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;setjmp&lt;/code&gt; to put an anchor in the normal return path of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;might_throw&lt;/code&gt;, then have
-&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a_cleanup_function&lt;/code&gt; jump to there with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;longjmp&lt;/code&gt;, and we would have skipped the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt;.&lt;/p&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;the_cleanup_function&lt;/code&gt; jump to there with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;longjmp&lt;/code&gt;, and we would have skipped the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_Unwind_Resume&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;Here is a version of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;might_throw&lt;/code&gt; that does this:&lt;/p&gt;
 
@@ -237,13 +237,13 @@ by the way). And our cleanup function does interrupt the unwind, so after it ret
 	&lt;span class=&quot;c1&quot;&gt;// performed.&lt;/span&gt;
 	&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;do_jump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
-&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;a_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;the_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
 	&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;do_jump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
 		&lt;span class=&quot;n&quot;&gt;longjmp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 	&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;might_throw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-	&lt;span class=&quot;n&quot;&gt;__attribute__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cleanup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Catch&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;__attribute__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cleanup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;the_cleanup_function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Catch&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setjmp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
 		&lt;span class=&quot;n&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;do_jump&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 		&lt;span class=&quot;n&quot;&gt;throw_exception&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
