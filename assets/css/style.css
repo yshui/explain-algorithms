@@ -478,4 +478,6 @@ pre code { font-size: 15px !important; }
 
 p code { font-size: 19px; }
 
+.anchor:target { background: yellow; }
+
 /*# sourceMappingURL=style.css.map */

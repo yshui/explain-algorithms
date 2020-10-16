@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Handle C++ exceptions in C code, part 1 | Explain Algorithms</title>
+<meta name="generator" content="Jekyll v4.1.1" />
+<meta property="og:title" content="Handle C++ exceptions in C code, part 1" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code, but don&#39;t worry, I know this is a terrible idea, and (hopefully) no one is actually going to do that." />
+<meta property="og:description" content="Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code, but don&#39;t worry, I know this is a terrible idea, and (hopefully) no one is actually going to do that." />
+<link rel="canonical" href="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html" />
+<meta property="og:url" content="https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html" />
+<meta property="og:site_name" content="Explain Algorithms" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2020-10-16T00:00:00-05:00" />
+<script type="application/ld+json">
+{"url":"https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html","@type":"BlogPosting","headline":"Handle C++ exceptions in C code, part 1","dateModified":"2020-10-16T00:00:00-05:00","datePublished":"2020-10-16T00:00:00-05:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://explain.yshui.dev/programming%20language/2020/10/16/exceptions.html"},"description":"Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code, but don&#39;t worry, I know this is a terrible idea, and (hopefully) no one is actually going to do that.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://explain.yshui.dev/feed.xml" title="Explain Algorithms" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link href="https://cdn.jsdelivr.net/npm/@primer/css/dist/primer.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.css"><script src="https://hypothes.is/embed.js" async></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement( document.body, {
+            delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "[%", right: "%]", display: true},
+                {left: "$", right: "$", display: false}
+            ],
+            macros: {
+                "\\sc": function(me) {
+                    const args = me.consumeArgs(1);
+                    console.log(args);
+                    let head = args[0].pop().text.toUpperCase();
+                    let rest = args[0].map(x => x.text.toUpperCase()).reverse().join('')
+                    console.log(head, rest);
+                    return `{\\rm ${head}\\footnotesize{${rest}}}`
+                }
+            }
+        });
+    });
+    </script>
+
+
+<script>
+function wrap_img(fn) {
+    if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+        var elements = document.querySelectorAll(".post img");
+        Array.prototype.forEach.call(elements, function(el, i) {
+            if (el.getAttribute("title") && (el.className != "emoji")) {
+                const caption = document.createElement('figcaption');
+                var node = document.createTextNode(el.getAttribute("title"));
+                caption.appendChild(node);
+                const wrapper = document.createElement('figure');
+                wrapper.className = 'image';
+                el.parentNode.insertBefore(wrapper, el);
+                el.parentNode.removeChild(el);
+                wrapper.appendChild(el);
+                wrapper.appendChild(caption);
+            }
+        });
+    } else { document.addEventListener('DOMContentLoaded', fn); }
+}
+window.onload = wrap_img;
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+    // add link icon to anchor tags
+    var elem = document.querySelectorAll(".anchor-link")
+    elem.forEach(e => (e.innerHTML = '<i class="fas fa-link fa-xs"></i>'));
+    });
+</script>
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Explain Algorithms</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About Me</a><a class="page-link" href="/search/">Search</a><a class="page-link" href="/categories/">Tags</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Handle C++ exceptions in C code, part 1</h1><p class="post-meta post-meta-title"><time class="dt-published" datetime="2020-10-16T00:00:00-05:00" itemprop="datePublished">
+        Oct 16, 2020
+      </time>
+       • <span class="read-time" title="Estimated read time">
+    
+    
+      9 min read
+    
+</span></p>
+
+    
+      <p class="category-tags"><i class="fas fa-tags category-tags-icon"></i></i> 
+      
+        <a class="category-tags-link" href="//categories/#Programming language">Programming language</a>
+        
+      
+      </p>
+    
+
+    </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>Hold on! Before you call me crazy, please let me clarify. Yes, I am going to tell you how to handle C++ exceptions in C code,
+but don't worry, I know this is a terrible idea, and (hopefully) no one is <em>actually</em> going to do that.</p>
+
+<p>But why, you might ask, would anyone even begin to ponder such a silly idea? Well, poking things and making them do things they
+aren't <em>supposed to</em> do is a brilliant way to figure out how they work. And exception handling is certainly a very interesting
+, and perhaps quite important, practical computer algorithm. So it's quite natural for someone to have curiosity about how it works.</p>
+
+<p>Alright. But where do we even start? If you search for information on exception handling online, what you would find is
+usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
+is usually hard for someone to see how they all fit together.</p>
+
+<p>So instead, let's try to work in reverse instead. Let's try to inspect something that actually does exception handling.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">throw_exception</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">throw</span> <span class="nb">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">try</span> <span class="p">{</span>
+        <span class="n">throw_exception</span><span class="p">();</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">e</span><span class="p">){</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This is a baseline program that throws an exception and catches it. Let's try compiling it and see what comes out:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>g++ code.cc <span class="nt">-S</span>
+</code></pre></div></div>
+
+<p>If you are wondering what <code class="language-plaintext highlighter-rouge">-S</code> does, it tells the compiler to stop after producing the assembly, without assembling or linking the code.
+You should try this step yourself, and look at the assembly produced. Here, I picked out a few relevant snippets, and simplified them to
+make them easier to read.</p>
+
+<p>Let's look at the throwing side first:</p>
+
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">throw_exception</span><span class="p">():</span>
+<span class="nl">.LFB0:</span>
+	<span class="nf">push</span>	<span class="nb">rbp</span>
+	<span class="nf">mov</span>	<span class="nb">rbp</span><span class="p">,</span> <span class="nb">rsp</span>
+	<span class="nf">mov</span>	<span class="nb">edi</span><span class="p">,</span> <span class="mi">8</span>
+	<span class="nf">call</span>	<span class="nv">__cxa_allocate_exception@PLT</span> <span class="c1">; &lt;----</span>
+	<span class="nf">mov</span>	<span class="kt">QWORD</span> <span class="nv">PTR</span> <span class="p">[</span><span class="nb">rax</span><span class="p">],</span> <span class="mi">0</span>
+	<span class="nf">mov</span>	<span class="nb">edx</span><span class="p">,</span> <span class="mi">0</span>
+	<span class="nf">lea</span>	<span class="nb">rsi</span><span class="p">,</span> <span class="nv">_ZTIDn</span><span class="p">[</span><span class="nv">rip</span><span class="p">]</span>
+	<span class="nf">mov</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="nb">rax</span>
+	<span class="nf">call</span>	<span class="nv">__cxa_throw@PLT</span>              <span class="c1">; &lt;----</span>
+</code></pre></div></div>
+
+<p>If you are not used to looking at assembly, this might look quite daunting. But luckily, you don't have to know any assembly at all to pick out the interesting bits here:
+<code class="language-plaintext highlighter-rouge">__cxa_allocate_exception</code> and <code class="language-plaintext highlighter-rouge">__cxa_throw</code>.</p>
+
+<p>As their names suggest, <code class="language-plaintext highlighter-rouge">__cxa_allocate_exception</code> allocates space for the thrown exception, and <code class="language-plaintext highlighter-rouge">__cxa_throw</code> actually commences the throwing.
+(the <code class="language-plaintext highlighter-rouge">__cxa_</code> bit probably means "cxx abi", I am not sure.) You don't have to take my words, you can find this information <a href="https://libcxxabi.llvm.org/spec.html">here</a>.</p>
+
+<p>If you are curious, you can find the code of <code class="language-plaintext highlighter-rouge">__cxa_throw</code> <a href="https://github.com/gcc-mirror/gcc/blob/a16da48bf19bb139e5461e5b5b7f072d5369b054/libstdc%2B%2B-v3/libsupc%2B%2B/eh_throw.cc#L75">here</a>.
+For the rest of us, we are move on to the catching side:</p>
+
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">main:</span>
+<span class="nl">.LFB1:</span>
+	<span class="nf">push</span>	<span class="nb">rbp</span>
+	<span class="nf">mov</span>	<span class="nb">rbp</span><span class="p">,</span> <span class="nb">rsp</span>
+	<span class="nf">sub</span>	<span class="nb">rsp</span><span class="p">,</span> <span class="mi">16</span>
+<span class="nl">.LEHB0:</span>
+	<span class="nf">call</span>	<span class="nv">throw_exception</span><span class="p">()</span>
+<span class="nl">.LEHE0:</span>
+<span class="nl">.L6:</span>
+	<span class="nf">mov</span>	<span class="nb">eax</span><span class="p">,</span> <span class="mi">0</span>
+	<span class="nf">jmp</span>	<span class="nv">.L8</span> <span class="c1">; &lt;- this will jump to the label below</span>
+<span class="nl">.L7:</span>
+	<span class="nf">cmp</span>	<span class="nb">rdx</span><span class="p">,</span> <span class="mi">1</span>
+	<span class="nf">je</span>	<span class="nv">.L5</span>
+	<span class="nf">mov</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="nb">rax</span>
+<span class="nl">.LEHB1:</span>
+	<span class="nf">call</span>	<span class="nv">_Unwind_Resume@PLT</span>
+<span class="nl">.LEHE1:</span>
+<span class="nl">.L5:</span>
+	<span class="nf">mov</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="nb">rax</span>
+	<span class="nf">call</span>	<span class="nv">__cxa_begin_catch@PLT</span>
+	<span class="nf">mov</span>	<span class="kt">QWORD</span> <span class="nv">PTR</span> <span class="o">-</span><span class="mi">8</span><span class="p">[</span><span class="nb">rbp</span><span class="p">],</span> <span class="nb">rax</span>
+	<span class="nf">call</span>	<span class="nv">__cxa_end_catch@PLT</span>
+	<span class="nf">jmp</span>	<span class="nv">.L6</span>
+<span class="nl">.L8:</span> <span class="c1">; &lt;- this is a label</span>
+	<span class="nf">leave</span>
+	<span class="nf">ret</span> <span class="c1">; &lt;- this means "return"</span>
+</code></pre></div></div>
+
+<p>(If you don't know how to read this assembly, you just need to know this: instructions which start with letter <code class="language-plaintext highlighter-rouge">j</code> mean jump. The thing which follows the jump instruction is a "label", which is also what the <code class="language-plaintext highlighter-rouge">.Lxxx:</code> you see in the code are.
+The jump instruction will jump to the matching label when executed)</p>
+
+<p>OK, here we spot <code class="language-plaintext highlighter-rouge">__cxa_begin_catch</code> and <code class="language-plaintext highlighter-rouge">__cxa_end_catch</code>, which seems to be relevant. However, they don't seem to be directly reachable. If you follow the call to <code class="language-plaintext highlighter-rouge">throw_exception()</code>, you can see after it returns, the code immediately jumps
+to <code class="language-plaintext highlighter-rouge">.L8</code>, then returns from <code class="language-plaintext highlighter-rouge">main</code>. So who is going to execute the <code class="language-plaintext highlighter-rouge">catch</code> block?</p>
+
+<p>Let's look a bit further into the assembly:</p>
+
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">.LFE1:</span>
+        <span class="nf">.globl</span>  <span class="nv">__gxx_personality_v0</span>
+        <span class="nf">.section</span>        <span class="nv">.gcc_except_table</span><span class="p">,</span><span class="s">"a"</span><span class="p">,</span><span class="err">@</span><span class="nv">progbits</span>
+        <span class="nf">.align</span> <span class="mi">4</span>
+<span class="nl">.LLSDA1:</span>
+        <span class="nf">.byte</span>   <span class="mh">0xff</span>
+        <span class="nf">.byte</span>   <span class="mh">0x9b</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LLSDATT1</span><span class="o">-</span><span class="nv">.LLSDATTD1</span>
+<span class="nl">.LLSDATTD1:</span>
+        <span class="nf">.byte</span>   <span class="mh">0x1</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LLSDACSE1</span><span class="o">-</span><span class="nv">.LLSDACSB1</span>
+<span class="nl">.LLSDACSB1:</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LEHB0</span><span class="o">-</span><span class="nv">.LFB1</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LEHE0</span><span class="o">-</span><span class="nv">.LEHB0</span>
+        <span class="nf">.uleb128</span> <span class="nv">.L7</span><span class="o">-</span><span class="nv">.LFB1</span> <span class="c1">; &lt;- ha</span>
+        <span class="nf">.uleb128</span> <span class="mh">0x1</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LEHB1</span><span class="o">-</span><span class="nv">.LFB1</span>
+        <span class="nf">.uleb128</span> <span class="nv">.LEHE1</span><span class="o">-</span><span class="nv">.LEHB1</span>
+        <span class="nf">.uleb128</span> <span class="mi">0</span>
+        <span class="nf">.uleb128</span> <span class="mi">0</span>
+</code></pre></div></div>
+
+<p>This assembly block defines <em>data</em>. After being assembled and linked, they become data bytes stored verbatim in the executable. And in there, we find a reference to <code class="language-plaintext highlighter-rouge">.L7</code>.
+Look back at the code, we can see <code class="language-plaintext highlighter-rouge">.L7</code> contains a jump to <code class="language-plaintext highlighter-rouge">.L5</code>, which is the <code class="language-plaintext highlighter-rouge">catch</code> block.</p>
+
+<p>From this, we can infer that, there is some information stored in the executable ("metadata"), which the exception throwers will read when they throw an exception, to figure out what code to run when they throw an exception.</p>
+
+<p>Alright, we have a <span id="rough" class="anchor">rough</span> picture of how exception handling works:</p>
+
+<ul>
+  <li>The thrower prepares the exception, then call <code class="language-plaintext highlighter-rouge">__cxa_throw</code></li>
+  <li><code class="language-plaintext highlighter-rouge">__cxa_throw</code> looks through the metadata of the callers in the function call stack, to find a suitable catcher</li>
+  <li>The program jumps to the catcher</li>
+</ul>
+
+<p>Looks simple, right? If we can somehow make the metadata of a <em>C</em> function yell: "hey, look here, I am an exception catcher!", we will be done here.</p>
+
+<p>But, as you might know, there is no such thing as exceptions in the C language. There can't possibly be a way to declare a function as exception catcher, right?</p>
+
+<p>Well, there is not a <em>standard</em> way. But there is a way. There is this extension to C, implemented by the GCC compiler (and later Clang), which allows you to attach a
+<a href="https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#:~:text=cleanup">"cleanup"</a> function to a local variable. This cleanup function will be called when
+the local variable goes out of scope.</p>
+
+<p>Because of the excellent interoperability between C and C++, you can have the situation where an C++ exception is thrown "through" a C function. Normally, the cleanup functions
+aren't going to run in that case. However, this makes people unhappy. So, now, there <em>is</em> a way to make them run.</p>
+
+<p>Passing the <code class="language-plaintext highlighter-rouge">-fexceptions</code> option to GCC, makes it generate exception-aware code even when compiling C code. And in that mode, the cleanup functions will be registered as exception handlers! Just like the destructors of local variables in C++.</p>
+
+<p>Here is an example:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// file1.cc</span>
+<span class="k">extern</span> <span class="s">"C"</span> <span class="kt">void</span> <span class="nf">throw_exception</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">throw</span> <span class="nb">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">extern</span>  <span class="s">"C"</span> <span class="kt">void</span> <span class="nf">might_throw</span><span class="p">();</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">try</span> <span class="p">{</span>
+        <span class="c1">// OK, we have to have a try/catch in main,</span>
+        <span class="c1">// because if C++ cannot find an actual `catch` block,</span>
+        <span class="c1">// it will just abort(), without going through the throw</span>
+        <span class="c1">// process at all.</span>
+        <span class="n">might_throw</span><span class="p">();</span>
+    <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// file2.c</span>
+<span class="cp">#include &lt;stdio.h&gt;
+</span><span class="k">extern</span> <span class="kt">void</span> <span class="nf">throw_exception</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">a_cleanup_function</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"cleanup called</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="kt">void</span> <span class="nf">might_throw</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Call a_cleanup_function when `x` goes out of scope</span>
+    <span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">a_cleanup_function</span><span class="p">)))</span> <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
+    <span class="n">throw_exception</span><span class="p">();</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"do more stuff</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span> <span class="c1">// we don't get to this point :'(</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Compile and run:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>g++ file1.cc <span class="nt">-c</span>
+gcc file2.c <span class="nt">-fexceptions</span> <span class="nt">-c</span>
+g++ file1.o file2.o
+./a.out
+</code></pre></div></div>
+
+<p>You will see it says:</p>
+
+<pre><code class="language-plain">cleanup called
+</code></pre>
+
+<p>If you look at the assembly of <code class="language-plaintext highlighter-rouge">file2.c</code>, you will see structures very similar to the <code class="language-plaintext highlighter-rouge">try/catch</code> block in <code class="language-plaintext highlighter-rouge">file1.cc</code>.</p>
+
+<p>OK, we are able to get a C function called during the handling of a <em>C++</em> exception. But this exception still propagated through the C function, why?</p>
+
+<p>Let's look at the assembly again:</p>
+
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">might_throw:</span>
+<span class="c1">; ... skipped ...</span>
+<span class="nl">.L7:</span>
+	<span class="nf">mov</span>	<span class="nb">rbp</span><span class="p">,</span> <span class="nb">rax</span>
+	<span class="nf">jmp</span>	<span class="nv">.L5</span>
+<span class="nl">.L5:</span>
+	<span class="nf">lea</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="mi">4</span><span class="p">[</span><span class="nb">rsp</span><span class="p">]</span>
+<span class="nl">.LEHB2:</span>
+	<span class="nf">call</span>	<span class="nv">a_cleanup_function</span>
+	<span class="nf">mov</span>	<span class="nb">rdi</span><span class="p">,</span> <span class="nb">rbp</span>
+	<span class="nf">call</span>	<span class="nv">_Unwind_Resume@PLT</span>
+<span class="c1">; ... more skipped ...</span>
+</code></pre></div></div>
+
+<p>Here you can easily see the call to <code class="language-plaintext highlighter-rouge">a_cleanup_function</code>, right after that, is a call to <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>. What does that do?</p>
+
+<p>First of all, what does "unwind" mean here? You might have already known, the program needs to "unwind its stack" when an exception is thrown. Basically it has to remove entries on its call stack, until a catcher is found.
+Which is the process we already described <a href="#rough">above</a>.</p>
+
+<p>So, inferring from the name again, we can guess that <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> will resume an interrupted stack unwinding (which is
+<a href="https://web.archive.org/web/20201016174844id_/https://refspecs.linuxfoundation.org/LSB_4.0.0/LSB-Core-S390/LSB-Core-S390/baselib--unwind-resume.html">correct</a>,
+by the way). And our cleanup function does interrupt the unwind, so after it returns, the program calls <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code> to resume it.</p>
+
+<p>Alright, <em>if</em>, we can stop that function from being called. If we can do that, we would have "caught" the exception.</p>
+
+<p>Basically, we want <code class="language-plaintext highlighter-rouge">a_cleanup_function</code> to skip over everything in <code class="language-plaintext highlighter-rouge">might_throw</code> that is after the call to <code class="language-plaintext highlighter-rouge">a_cleanup_function</code>. Clearly, we need something that could interrupt the normal execution flow of the program.
+<code class="language-plaintext highlighter-rouge">goto</code> is not enough, because our skip is cross-function. We need something stronger.</p>
+
+<p>And there is indeed something stronger. <code class="language-plaintext highlighter-rouge">setjmp</code> and <code class="language-plaintext highlighter-rouge">longjmp</code>! A call to <code class="language-plaintext highlighter-rouge">longjmp</code> allows you to jump to a point in the program where you have previously called <code class="language-plaintext highlighter-rouge">setjmp</code> (the
+<a href="https://man7.org/linux/man-pages/man3/setjmp.3.html">man page</a> explains these functions very well). So we just need to use <code class="language-plaintext highlighter-rouge">setjmp</code> to put an anchor in the normal return path of <code class="language-plaintext highlighter-rouge">might_throw</code>, then have
+<code class="language-plaintext highlighter-rouge">a_cleanup_function</code> jump to there with <code class="language-plaintext highlighter-rouge">longjmp</code>, and we would have skipped the <code class="language-plaintext highlighter-rouge">_Unwind_Resume</code>.</p>
+
+<p>Here is a version of <code class="language-plaintext highlighter-rouge">might_throw</code> that does this:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include &lt;setjmp.h&gt;
+</span><span class="k">struct</span> <span class="n">Catch</span> <span class="p">{</span>
+	<span class="kt">jmp_buf</span> <span class="n">env</span><span class="p">;</span>
+
+	<span class="c1">// The cleanup function will be called when the exception is thrown,</span>
+	<span class="c1">// but then it will be called again when we return from `might_throw`.</span>
+	<span class="c1">// We don't want it to perform the longjmp when `might_throw` is returning</span>
+	<span class="c1">// normally, so we use a flag to indicate whether a longjmp should be</span>
+	<span class="c1">// performed.</span>
+	<span class="kt">int</span> <span class="n">do_jump</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="kt">void</span> <span class="nf">a_cleanup_function</span><span class="p">(</span><span class="k">struct</span> <span class="n">Catch</span> <span class="o">*</span><span class="n">env</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">do_jump</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">longjmp</span><span class="p">(</span><span class="n">env</span><span class="o">-&gt;</span><span class="n">env</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+<span class="kt">void</span> <span class="nf">might_throw</span><span class="p">()</span> <span class="p">{</span>
+	<span class="n">__attribute__</span><span class="p">((</span><span class="n">cleanup</span><span class="p">(</span><span class="n">a_cleanup_function</span><span class="p">)))</span> <span class="k">struct</span> <span class="n">Catch</span> <span class="n">env</span><span class="p">;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">setjmp</span><span class="p">(</span><span class="n">env</span><span class="p">.</span><span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">env</span><span class="p">.</span><span class="n">do_jump</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+		<span class="n">throw_exception</span><span class="p">();</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"exception caught</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+		<span class="n">env</span><span class="p">.</span><span class="n">do_jump</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"do more stuff after having caught the exception</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>And running it, we will get:</p>
+
+<pre><code class="language-plain">exception caught
+do more stuff after having caught the exception
+</code></pre>
+
+<p>Voilà! We have caught a C++ exception in C.</p>
+
+<p>OK, are we done?</p>
+
+<p>No! This result might be good enough, but I am still not satisfied. We have successfully <em>stopped</em> an exception in C code, but we don't actually <em>get</em> the thing that was thrown.
+All we know in our "exception handler" is an exception was thrown, but not what the exception is. This is quite useless.</p>
+
+<p>So, can we retrieve the thrown exception?</p>
+
+<p><em>Maybe</em>. We will continue in part 2.</p>
+
+  </div><a class="u-url" href="/programming%20language/2020/10/16/exceptions.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <p>Computer algorithms in human readable format</p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/yshui" title="yshui"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://twitter.com/yxshui" title="yxshui"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg></a></li></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
