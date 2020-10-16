@@ -271,7 +271,7 @@ void might_throw() {
 }
 ```
 
-And running it, we will get:
+And running it, we get:
 
 ```plain
 exception caught
