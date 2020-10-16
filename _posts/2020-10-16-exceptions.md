@@ -16,7 +16,7 @@ Alright. But where do we even start? If you search for information on exception 
 usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
 is usually hard for someone to see how they all fit together.
 
-So instead, let's try to work in reverse instead. Let's try to inspect something that actually does exception handling.
+So instead, let's work in reverse. Let's inspect something that actually does exception handling.
 
 ```cpp
 int throw_exception() {
