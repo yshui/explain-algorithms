@@ -129,7 +129,7 @@ aren't <em>supposed to</em> do is a brilliant way to figure out how they work. A
 usually cryptic and incomplete documentation about ELF, Dwarf, and C++ ABI. Often they are difficult to understand, and it
 is usually hard for someone to see how they all fit together.</p>
 
-<p>So instead, let's try to work in reverse instead. Let's try to inspect something that actually does exception handling.</p>
+<p>So instead, let's work in reverse. Let's inspect something that actually does exception handling.</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">throw_exception</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">throw</span> <span class="nb">nullptr</span><span class="p">;</span>
