@@ -63,7 +63,7 @@ As their names suggest, `__cxa_allocate_exception` allocates space for the throw
 (the `__cxa_` bit probably means "cxx abi", I am not sure.) You don't have to take my words, you can find this information [here](https://libcxxabi.llvm.org/spec.html).
 
 If you are curious, you can find the code of `__cxa_throw` [here](https://github.com/gcc-mirror/gcc/blob/a16da48bf19bb139e5461e5b5b7f072d5369b054/libstdc%2B%2B-v3/libsupc%2B%2B/eh_throw.cc#L75).
-For the rest of us, we are move on to the catching side:
+For the rest of us, we will move on to the catching side:
 
 ```nasm
 main:
