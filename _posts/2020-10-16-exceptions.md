@@ -202,7 +202,8 @@ cleanup called
 
 If you look at the assembly of `file2.c`, you will see structures very similar to the `try/catch` block in `file1.cc`.
 
-OK, we are able to get a C function called during the handling of a _C++_ exception. But this exception still propagated through the C function, why?
+OK, we are able to get a C function called during the handling of a _C++_ exception. But this exception still propagated through the C function, which is
+normal, given we didn't actually catch the signal. But what exactly is going on here? How did the control flow slip away from our hands?
 
 Let's look at the assembly again:
 
