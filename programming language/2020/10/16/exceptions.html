@@ -308,7 +308,8 @@ g++ file1.o file2.o
 
 <p>If you look at the assembly of <code class="language-plaintext highlighter-rouge">file2.c</code>, you will see structures very similar to the <code class="language-plaintext highlighter-rouge">try/catch</code> block in <code class="language-plaintext highlighter-rouge">file1.cc</code>.</p>
 
-<p>OK, we are able to get a C function called during the handling of a <em>C++</em> exception. But this exception still propagated through the C function, why?</p>
+<p>OK, we are able to get a C function called during the handling of a <em>C++</em> exception. But this exception still propagated through the C function, which is
+normal, given we didn't actually catch the signal. But what exactly is going on here? How did the control flow slip away from our hands?</p>
 
 <p>Let's look at the assembly again:</p>
 
